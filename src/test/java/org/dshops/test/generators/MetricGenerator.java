@@ -8,9 +8,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.dshops.listeners.KairosDBListener;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.MetricRegistry;
-import org.dshops.metrics.listeners.ConsoleListener;
 import org.dshops.test.generators.support.EventGenerator;
 import org.dshops.test.generators.support.EventQueryGenerator;
 import org.kairosdb.client.HttpClient;
@@ -18,15 +18,18 @@ import org.kairosdb.client.HttpClient;
 /** Metric Generators is used for 'testing', aka generating metrics
  *  This generator is specific to KairosDB., and will be moved library metric-raw-kairosdb in the future.
  * */
-public class MetricGenerator implements DynamicListener {
+public class MetricGenerator {
 
     public static void main(String[] args) {
         new MetricGenerator(args);
     }
 
-    @Override
-    public EventListener getListener(MetricRegistry reg) {
-        return new ConsoleListener(System.out);
+    public EventListener getListener(MetricRegistry reg, String url) {
+        return new KairosDBListener(url,
+                                    "root",
+                                    "root",
+                                    reg,
+                                    100);
     }
 
     public MetricGenerator(String[] args) {
@@ -110,7 +113,7 @@ public class MetricGenerator implements DynamicListener {
                 eqg.start();
 
                 if (writeTps > 0) {
-                    getListener(mr);
+                    getListener(mr, url);
                     writers[i].start();
                 }
             }
