@@ -1,10 +1,11 @@
 package org.dshops.test.generators.support;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.dshops.metrics.EventImpl;
 import org.dshops.metrics.MetricRegistry;
 
 public class EventGenerator extends Thread implements Runnable {
@@ -52,11 +53,11 @@ public class EventGenerator extends Thread implements Runnable {
                 }
                 int tagCount = r.nextInt(possibleTags); // random number of tags to generate
                 if (tagCount > 0) {
-                    EventImpl.Builder eb = mr.eventWithTags(eventNames[r.nextInt(eventNames.length)]);
+                    Map<String,String> tags = new HashMap<>();
                     for (int i = 0 ; i < tagCount; i++){
-                        eb.addTag("tag" + r.nextInt(tagCount), "value"+ r.nextInt(tagValueCount));
+                        tags.put("tag" + r.nextInt(tagCount), "value"+ r.nextInt(tagValueCount));
                     }
-                    eb.build();
+                    mr.event(eventNames[r.nextInt(eventNames.length)], tags);
                 }
                 else {
                     mr.event(eventNames[r.nextInt(eventNames.length)]);
