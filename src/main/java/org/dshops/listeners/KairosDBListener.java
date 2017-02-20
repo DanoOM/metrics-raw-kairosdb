@@ -1,9 +1,12 @@
 package org.dshops.listeners;
 
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -41,6 +44,7 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
     private final String appType;
     private final int bufferLimit;
     private final AtomicInteger bufferedEvents = new AtomicInteger();
+    private final Map<String,String> versions = new HashMap<>();
 
     public KairosDBListener(String connectString,
                             String un,
@@ -92,6 +96,18 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
         catch(MalformedURLException mue) {
             throw new RuntimeException("Malformed Url:"+connectString+" "+mue.getMessage());
         }
+
+        // Get Version Info
+        String kbListenerVersion = getVersion("org.dshops/metrics-raw-kairosdb", this.getClass());
+        String metricsRawVersion = getVersion("org.dshops/metrics-raw", registry.getClass());
+
+        System.out.println("kairosDbListener - Version Info[KairosDbListener:" + kbListenerVersion + ", metrics-raw:"+metricsRawVersion);
+
+        if (kbListenerVersion != null) {
+            versions.put("kairosDbListenerVersion", kbListenerVersion);
+            versions.put("metricsRawVersion", metricsRawVersion);
+        }
+
         runThread = new Thread(this);
         runThread.setName("kairosDbListener");
         runThread.setDaemon(true);
@@ -203,14 +219,15 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
         } while(!stopRequested);
     }
 
-
-
     private void sendMetricStats(long metricCount, long errorCount, long httpCalls) throws Exception {
         if (kairosDb == null) return;
         try {
             MetricBuilder mb = MetricBuilder.getInstance();
+
+
             mb.addMetric("metricsraw.stats.data.count")
               .addTags(registry.getTags())
+              .addTags(versions)
               .addTag("serviceTeam",serviceTeam)
               .addTag("app",app)
               .addTag("appType",appType)
@@ -313,6 +330,41 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
             bufferedEvents.incrementAndGet();
         }
         events.add(e);
+    }
+
+    public synchronized String getVersion(String path, Class clazz) {
+        String version = null;
+
+        // try to load from maven properties first
+        try {
+            Properties p = new Properties();
+            InputStream is = getClass().getResourceAsStream("/META-INF/maven/"+path+"/pom.properties");
+            if (is != null) {
+                p.load(is);
+                version = p.getProperty("version", "");
+            }
+        }
+        catch (Exception e) {
+            // ignore
+        }
+
+        // fallback to using Java API
+        if (version == null) {
+            Package aPackage = clazz.getPackage();
+            if (aPackage != null) {
+                version = aPackage.getImplementationVersion();
+                if (version == null) {
+                    version = aPackage.getSpecificationVersion();
+                }
+            }
+        }
+
+        if (version == null) {
+            // we could not compute the version so use a blank
+            version = "";
+        }
+
+        return version;
     }
 }
 

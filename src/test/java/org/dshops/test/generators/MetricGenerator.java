@@ -1,7 +1,7 @@
 package org.dshops.test.generators;
 
-import static org.dshops.test.generators.support.UtilArg.getArg;
-import static org.dshops.test.generators.support.UtilArg.getIntArg;
+import static org.dshops.test.generators.UtilArg.getArg;
+import static org.dshops.test.generators.UtilArg.getIntArg;
 
 import java.util.HashMap;
 import java.util.Map;

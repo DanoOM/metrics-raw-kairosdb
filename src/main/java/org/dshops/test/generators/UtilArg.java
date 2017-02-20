@@ -1,4 +1,4 @@
-package org.dshops.test.generators.support;
+package org.dshops.test.generators;
 
 public class UtilArg {
     static public int getIntArg(String[] args, String arg, int defaultValue) {
