@@ -1,18 +1,18 @@
-package org.dshops.test.generators;
+package org.dshops.metrics.test.generators;
 
-import static org.dshops.test.generators.UtilArg.getArg;
-import static org.dshops.test.generators.UtilArg.getIntArg;
+import static org.dshops.test.metrics.generators.UtilArg.getArg;
+import static org.dshops.test.metrics.generators.UtilArg.getIntArg;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.dshops.listeners.KairosDBListener;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.MetricRegistry;
-import org.dshops.test.generators.support.EventGenerator;
-import org.dshops.test.generators.support.EventQueryGenerator;
+import org.dshops.metrics.listeners.KairosDBListener;
+import org.dshops.metrics.test.generators.support.EventGenerator;
+import org.dshops.metrics.test.generators.support.EventQueryGenerator;
 import org.kairosdb.client.HttpClient;
 
 /** Metric Generators is used for 'testing', aka generating metrics

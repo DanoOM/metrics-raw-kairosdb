@@ -1,12 +1,12 @@
-package org.dshops.test.generators;
+package org.dshops.test.metrics.generators;
 
 import java.util.Random;
 
-import org.dshops.listeners.KairosDBListener;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.Meter;
 import org.dshops.metrics.MetricRegistry;
 import org.dshops.metrics.Timer;
+import org.dshops.metrics.listeners.KairosDBListener;
 
 public class KairosDbManualTestDriver {
 

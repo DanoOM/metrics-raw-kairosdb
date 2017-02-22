@@ -1,4 +1,4 @@
-package org.dshops.listeners;
+package org.dshops.metrics.listeners;
 
 import java.io.InputStream;
 import java.net.MalformedURLException;

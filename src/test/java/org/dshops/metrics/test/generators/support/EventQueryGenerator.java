@@ -1,4 +1,4 @@
-package org.dshops.test.generators.support;
+package org.dshops.metrics.test.generators.support;
 
 import java.util.List;
 import java.util.Map;
