@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.dshops</groupId>
   <artifactId>metrics-raw-kairosdb</artifactId>
-  <version>0.0.3</version>  
+  <version>0.3.1</version>  
   <url>https://github.com/DanoOM/metrics-raw-kairosdb</url>	
   <prerequisites>
     <maven>3.0.0</maven>
