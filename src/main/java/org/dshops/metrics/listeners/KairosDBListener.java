@@ -17,7 +17,6 @@ import org.dshops.metrics.Event;
 import org.dshops.metrics.LongEvent;
 import org.dshops.metrics.MetricKey;
 import org.dshops.metrics.MetricRegistry;
-import org.dshops.metrics.listeners.ThreadedListener;
 import org.kairosdb.client.HttpClient;
 import org.kairosdb.client.builder.MetricBuilder;
 import org.kairosdb.client.response.Response;
@@ -46,14 +45,14 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
     private final AtomicInteger bufferedEvents = new AtomicInteger();
     private final Map<String,String> versions = new HashMap<>();
 
-    public KairosDBListener(String connectString,
+    KairosDBListener(String connectString,
                             String un,
                             String pd,
                             MetricRegistry registry) {
         this(connectString, un, pd, registry, 100);
     }
 
-    public KairosDBListener(String connectString,
+    KairosDBListener(String connectString,
                             String un,
                             String pd,
                             MetricRegistry registry,
@@ -61,7 +60,7 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
         this(connectString, un, pd, registry, batchSize, 5000, -1);
     }
 
-    public KairosDBListener(String connectString,
+    KairosDBListener(String connectString,
                             String un,
                             String pd,
                             MetricRegistry registry,

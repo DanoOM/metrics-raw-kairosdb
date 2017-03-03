@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.MetricRegistry;
-import org.dshops.metrics.listeners.KairosDBListener;
+import org.dshops.metrics.listeners.KairosDBListenerFactory;
 import org.dshops.metrics.test.generators.support.EventGenerator;
 import org.dshops.metrics.test.generators.support.EventQueryGenerator;
 import org.kairosdb.client.HttpClient;
@@ -25,11 +25,13 @@ public class MetricGenerator {
     }
 
     public EventListener getListener(MetricRegistry reg, String url) {
-        return new KairosDBListener(url,
-                                    "root",
-                                    "root",
-                                    reg,
-                                    100);
+        return KairosDBListenerFactory.buildIndexedListener(url,
+                                                            "root",
+                                                            "root",
+                                                            reg,
+                                                            100,
+                                                            5000,
+                                                            -1);
     }
 
     public MetricGenerator(String[] args) {

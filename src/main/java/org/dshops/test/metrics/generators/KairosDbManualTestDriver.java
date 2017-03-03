@@ -6,13 +6,13 @@ import org.dshops.metrics.EventListener;
 import org.dshops.metrics.Meter;
 import org.dshops.metrics.MetricRegistry;
 import org.dshops.metrics.Timer;
-import org.dshops.metrics.listeners.KairosDBListener;
+import org.dshops.metrics.listeners.KairosDBListenerFactory;
 
 public class KairosDbManualTestDriver {
 
     private String url;
     public EventListener getListener(MetricRegistry reg) {
-        return new KairosDBListener(url, "root", "root", reg);
+        return KairosDBListenerFactory.buildIndexedListener(url, reg);
     }
 
     public KairosDbManualTestDriver(String[] args) {
