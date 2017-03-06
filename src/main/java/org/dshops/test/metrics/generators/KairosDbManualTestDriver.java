@@ -12,7 +12,7 @@ public class KairosDbManualTestDriver {
 
     private String url;
     public EventListener getListener(MetricRegistry reg) {
-        return KairosDBListenerFactory.buildIndexedListener(url, reg);
+        return KairosDBListenerFactory.buildListener(url, reg);
     }
 
     public KairosDbManualTestDriver(String[] args) {
