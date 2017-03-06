@@ -29,29 +29,28 @@ import org.slf4j.LoggerFactory;
  *
  *
  * */
-public class KairosDbListenerMilliBucket extends ThreadedListener
-implements Runnable {
+public class KairosDbNonIndexingListener extends ThreadedListener implements Runnable {
 
     private final BlockingQueue<Event> queue;
     private final int batchSize;
     private final long offerTime;   // amount of time we are willing to 'block' before adding an event to our buffer, prior to dropping it.
     private Thread runThread;
     private final HttpClient kairosDb;
-    private final static Logger log = LoggerFactory.getLogger(KairosDbListenerMilliBucket.class);
+    private final static Logger log = LoggerFactory.getLogger(KairosDbNonIndexingListener.class);
     private final MetricRegistry registry;
     private final AtomicInteger droppedEvents = new AtomicInteger();
     private final String serviceTeam;
     private final String app;
     private final String appType;
 
-    KairosDbListenerMilliBucket(String connectString,
+    KairosDbNonIndexingListener(String connectString,
                             String un,
                             String pd,
                             MetricRegistry registry) {
         this(connectString, un, pd, registry, 100);
     }
 
-    KairosDbListenerMilliBucket(String connectString,
+    KairosDbNonIndexingListener(String connectString,
                             String un,
                             String pd,
                             MetricRegistry registry,
@@ -59,7 +58,7 @@ implements Runnable {
         this(connectString, un, pd, registry, batchSize, 5000, -1);
     }
 
-    KairosDbListenerMilliBucket(String connectString,
+    KairosDbNonIndexingListener(String connectString,
                             String un,
                             String pd,
                             MetricRegistry registry,
@@ -207,47 +206,22 @@ implements Runnable {
 
     private MetricBuilder buildPayload(List<Event> events) {
         MetricBuilder mb = MetricBuilder.getInstance();
-        //@todo time-deduping when same event occurs in same millis
-
         for (Event e: events) {
-            if (e.getIndex() > 1) {
-                if (e instanceof LongEvent) {
-                    mb.addMetric(e.getName())
-                       .addTags(e.getTags())
-                       .addTag("index", e.getIndex() + "")
-                       .addDataPoint(e.getTimestamp(), e.getLongValue());
-                }
-                else if (e instanceof DoubleEvent) {
-                    mb.addMetric(e.getName())
-                      .addTags(e.getTags())
-                      .addTag("index", e.getIndex() + "")
-                      .addDataPoint(e.getTimestamp(), e.getDoubleValue());
-                }
-                else {
-                    // this is a pure event, value has no meaning
-                    mb.addMetric(e.getName())
-                      .addTags(e.getTags())
-                      .addTag("index", e.getIndex() + "")
-                      .addDataPoint(e.getTimestamp(), 1);
-                }
+            if (e instanceof LongEvent) {
+                mb.addMetric(e.getName())
+                   .addTags(e.getTags())
+                   .addDataPoint(e.getTimestamp(), e.getLongValue());
+            }
+            else if (e instanceof DoubleEvent) {
+                mb.addMetric(e.getName())
+                  .addTags(e.getTags())
+                  .addDataPoint(e.getTimestamp(), e.getDoubleValue());
             }
             else {
-                if (e instanceof LongEvent) {
-                    mb.addMetric(e.getName())
-                       .addTags(e.getTags())
-                       .addDataPoint(e.getTimestamp(), e.getLongValue());
-                }
-                else if (e instanceof DoubleEvent) {
-                    mb.addMetric(e.getName())
-                      .addTags(e.getTags())
-                      .addDataPoint(e.getTimestamp(), e.getDoubleValue());
-                }
-                else {
-                    // this is a pure event, value has no meaning
-                    mb.addMetric(e.getName())
-                      .addTags(e.getTags())
-                      .addDataPoint(e.getTimestamp(), 1);
-                }
+                // this is a pure event, value has no meaning
+                mb.addMetric(e.getName())
+                  .addTags(e.getTags())
+                  .addDataPoint(e.getTimestamp(), 1);
             }
         }
         return mb;

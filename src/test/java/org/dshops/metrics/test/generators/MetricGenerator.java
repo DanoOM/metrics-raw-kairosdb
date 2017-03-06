@@ -25,13 +25,13 @@ public class MetricGenerator {
     }
 
     public EventListener getListener(MetricRegistry reg, String url) {
-        return KairosDBListenerFactory.buildIndexedListener(url,
-                                                            "root",
-                                                            "root",
-                                                            reg,
-                                                            100,
-                                                            5000,
-                                                            -1);
+        return KairosDBListenerFactory.buildListener(url,
+                                                    "root",
+                                                    "root",
+                                                    reg,
+                                                    100,
+                                                    5000,
+                                                    -1);
     }
 
     public MetricGenerator(String[] args) {
