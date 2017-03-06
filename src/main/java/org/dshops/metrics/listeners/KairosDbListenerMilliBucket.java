@@ -93,6 +93,10 @@ implements Runnable {
         runThread.start();
     }
 
+    HttpClient getClient() {
+        return kairosDb;
+    }
+
     @Override
     public void run() {
         final List<Event> dispatchList = new ArrayList<>(batchSize);
@@ -204,16 +208,46 @@ implements Runnable {
     private MetricBuilder buildPayload(List<Event> events) {
         MetricBuilder mb = MetricBuilder.getInstance();
         //@todo time-deduping when same event occurs in same millis
+
         for (Event e: events) {
-            if (e instanceof LongEvent) {
-                mb.addMetric(e.getName()).addTags(e.getTags()).addDataPoint(e.getTimestamp(), e.getLongValue());
-            }
-            else if (e instanceof DoubleEvent) {
-                mb.addMetric(e.getName()).addTags(e.getTags()).addDataPoint(e.getTimestamp(), e.getDoubleValue());
+            if (e.getIndex() > 1) {
+                if (e instanceof LongEvent) {
+                    mb.addMetric(e.getName())
+                       .addTags(e.getTags())
+                       .addTag("index", e.getIndex() + "")
+                       .addDataPoint(e.getTimestamp(), e.getLongValue());
+                }
+                else if (e instanceof DoubleEvent) {
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addTag("index", e.getIndex() + "")
+                      .addDataPoint(e.getTimestamp(), e.getDoubleValue());
+                }
+                else {
+                    // this is a pure event, value has no meaning
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addTag("index", e.getIndex() + "")
+                      .addDataPoint(e.getTimestamp(), 1);
+                }
             }
             else {
-                // this is a pure event, value has no meaning
-                mb.addMetric(e.getName()).addTags(e.getTags()).addDataPoint(e.getTimestamp(), 1);
+                if (e instanceof LongEvent) {
+                    mb.addMetric(e.getName())
+                       .addTags(e.getTags())
+                       .addDataPoint(e.getTimestamp(), e.getLongValue());
+                }
+                else if (e instanceof DoubleEvent) {
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addDataPoint(e.getTimestamp(), e.getDoubleValue());
+                }
+                else {
+                    // this is a pure event, value has no meaning
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addDataPoint(e.getTimestamp(), 1);
+                }
             }
         }
         return mb;

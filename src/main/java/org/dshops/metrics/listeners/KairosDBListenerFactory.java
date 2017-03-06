@@ -9,6 +9,8 @@ import org.dshops.metrics.MetricRegistry;
 public class KairosDBListenerFactory {
     private static Map<String, EventListener> indexedListeners = new ConcurrentHashMap<>();
     private static Map<String, EventListener> bucketListeners = new ConcurrentHashMap<>();
+    private static Map<String, KairosDbHybridListener> hybridListeners = new ConcurrentHashMap<>();
+    private static Map<String, EventListener> countingListeners = new ConcurrentHashMap<>();
 
     /** Builds a 'default' KairosDbListener (non-indexed)
      *  where: 'un/pd='', batchSize = 50, bufferSize=5000, offerTimeMillis (none)'
@@ -33,6 +35,7 @@ public class KairosDBListenerFactory {
                                                                un,
                                                                pd,
                                                                registry);
+                    bucketListeners.put(connectString, listener);
                 }
             }
         }
@@ -62,6 +65,63 @@ public class KairosDBListenerFactory {
                                                     un,
                                                     pd,
                                                     registry);
+                    indexedListeners.put(connectString, listener);
+                }
+            }
+        }
+        return listener;
+    }
+
+    public static KairosDbHybridListener buildHybridListener(String connectString, MetricRegistry registry){
+        return buildHybridListener(connectString, "", "", registry, 50, 5000, -1);
+    }
+
+    public static KairosDbHybridListener buildHybridListener(String connectString,
+                                              String un,
+                                              String pd,
+                                              MetricRegistry registry,
+                                              int batchSize,
+                                              int bufferSize,
+                                              long offerTimeMillis) {
+        KairosDbHybridListener listener = hybridListeners.get(connectString);
+        if (listener == null) {
+            synchronized (hybridListeners) {
+                listener = hybridListeners.get(connectString);
+                if (listener == null) {
+                    listener = new KairosDbHybridListener(connectString,
+                                                          registry);
+                    hybridListeners.put(connectString,listener);
+                }
+            }
+        }
+        return listener;
+    }
+
+    public static EventListener buildCountingListener(String connectString, MetricRegistry registry){
+        return buildCountingListener(connectString, "", "", registry, 50, 5000, -1);
+    }
+
+    public static EventListener buildCountingListener(String connectString,
+                                                      String un,
+                                                      String pd,
+                                                      MetricRegistry registry,
+                                                      int batchSize,
+                                                      int bufferSize,
+                                                      long offerTimeMillis) {
+        EventListener listener = countingListeners.get(connectString);
+        if (listener == null) {
+            synchronized (countingListeners) {
+                listener = countingListeners.get(connectString);
+                if (listener == null) {
+                    EventListener el = new KairosDbListenerMilliBucket(connectString,
+                                                                       un,
+                                                                       pd,
+                                                                       registry,
+                                                                       batchSize,
+                                                                       bufferSize,
+                                                                       offerTimeMillis);
+                    listener = new KairosDBCountingListener(el);
+                    countingListeners.put(connectString, listener);
                 }
             }
         }

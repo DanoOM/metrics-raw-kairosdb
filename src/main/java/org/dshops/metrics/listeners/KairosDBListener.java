@@ -59,6 +59,33 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
                             int batchSize) {
         this(connectString, un, pd, registry, batchSize, 5000, -1);
     }
+    KairosDBListener(HttpClient client,
+            MetricRegistry registry) {
+        this(client, registry, 100, 5000, -1);
+    }
+    KairosDBListener(HttpClient client,
+                     MetricRegistry registry,
+                     int batchSize,
+                     int bufferSize,
+                     long offerTimeMillis) {
+        this.registry = registry;
+        String[] prefix = registry.getPrefix().split("\\.");
+        this.serviceTeam = prefix[0];
+        this.app = prefix[1];
+        this.appType = prefix[2];
+        this.bufferLimit = bufferSize;
+
+        if (batchSize > 1) {
+            this.batchSize = batchSize;
+        }
+        else {
+            this.batchSize = 100;
+        }
+
+        this.offerTime = offerTimeMillis;
+        this.kairosDb = client;
+        startThread(registry);
+    }
 
     KairosDBListener(String connectString,
                             String un,
@@ -95,8 +122,10 @@ public class KairosDBListener extends ThreadedListener implements Runnable {
         catch(MalformedURLException mue) {
             throw new RuntimeException("Malformed Url:"+connectString+" "+mue.getMessage());
         }
+        startThread(registry);
+    }
 
-        // Get Version Info
+    private void startThread(MetricRegistry registry) {
         String kbListenerVersion = getVersion("org.dshops/metrics-raw-kairosdb", this.getClass());
         String metricsRawVersion = getVersion("org.dshops/metrics-raw", registry.getClass());
 
