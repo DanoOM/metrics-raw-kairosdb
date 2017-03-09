@@ -10,7 +10,7 @@ public class KairosDBListenerFactory {
     private static Map<String, EventListener> indexingListeners = new ConcurrentHashMap<>();
     private static Map<String, EventListener> unIndexingListeners = new ConcurrentHashMap<>();
 
-    public static EventListener buildListener(String connectString, MetricRegistry registry){
+    public static EventListener buildListener(String connectString, MetricRegistry registry) {
         return buildListener(connectString, "", "", registry, 50, 5000, -1);
     }
 
@@ -29,7 +29,10 @@ public class KairosDBListenerFactory {
                     listener = new KairosDbIndexingListener(connectString,
                                                             un,
                                                             pd,
-                                                            registry);
+                                                            registry,
+                                                            batchSize,
+                                                            bufferSize,
+                                                            offerTimeMillis);
                     indexingListeners.put(connectString, listener);
                 }
             }
@@ -37,7 +40,7 @@ public class KairosDBListenerFactory {
         return listener;
     }
 
-    public static EventListener buildUnindexedListener(String connectString, MetricRegistry registry){
+    public static EventListener buildUnindexedListener(String connectString, MetricRegistry registry) {
         return buildUnindexedListener(connectString, "", "", registry, 50, 5000, -1);
     }
 
@@ -56,7 +59,10 @@ public class KairosDBListenerFactory {
                     listener = new KairosDbNonIndexingListener(connectString,
                                                                un,
                                                                pd,
-                                                               registry);
+                                                               registry,
+                                                               batchSize,
+                                                               bufferSize,
+                                                               offerTimeMillis);
                     unIndexingListeners.put(connectString, listener);
                 }
             }
