@@ -33,7 +33,7 @@ public class KairosDBListenerFactory {
                                                             batchSize,
                                                             bufferSize,
                                                             offerTimeMillis);
-                    indexingListeners.put(connectString, listener);
+//XXX                    indexingListeners.put(connectString, listener);
                 }
             }
         }
