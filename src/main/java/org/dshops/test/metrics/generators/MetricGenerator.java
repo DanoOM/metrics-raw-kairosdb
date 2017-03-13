@@ -20,6 +20,9 @@ import org.kairosdb.client.HttpClient;
 public class MetricGenerator {
 
     public static void main(String[] args) {
+        // Disable caching, as we create unique MR/Listener for 'simulated' host.
+        MetricRegistry.enableRegistryCaching(false);
+        KairosDBListenerFactory.enableListenerCaching(false);
         new MetricGenerator(args);
     }
 
