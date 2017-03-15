@@ -17,7 +17,7 @@ public class KairosDbManualTestDriver {
 
     public KairosDbManualTestDriver(String[] args) {
         url = UtilArg.getArg(args, "url", "http://localhost:8080");
-        MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "DanHost", "danDatacenter").build();
+        MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
         mr.addEventListener(getListener(mr));
         // basic timer test
         Timer t = mr.timer("testTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");

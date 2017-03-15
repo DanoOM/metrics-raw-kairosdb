@@ -273,7 +273,9 @@ implements Runnable, EventIndexingListener {
             }
         }
         else {
-            queue.offer(e);
+            if (!queue.offer(e)) {
+                droppedEvents.incrementAndGet();
+            }
         }
     }
 

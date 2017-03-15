@@ -149,7 +149,9 @@
 				<configuration>
 					<archive>
 						<manifest>
-							<mainClass>org.dshops.test.generators.KairosDbManualTestDriver</mainClass>
+							<mainClass>org.dshops.test.metrics.generators.MetricGenerator</mainClass>
+							<!-- <mainClass>org.dshops.test.generators.KairosDbManualTestDriver</mainClass>							
+							-->
 						</manifest>
 					</archive>
 					<descriptorRefs>

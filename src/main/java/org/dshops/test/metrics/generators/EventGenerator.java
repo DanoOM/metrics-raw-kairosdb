@@ -1,4 +1,4 @@
-package org.dshops.metrics.test.generators.support;
+package org.dshops.test.metrics.generators;
 
 import java.util.HashMap;
 import java.util.Map;

@@ -1,8 +1,9 @@
-package org.dshops.metrics.test.generators;
+package org.dshops.test.metrics.generators;
 
 import static org.dshops.test.metrics.generators.UtilArg.getArg;
 import static org.dshops.test.metrics.generators.UtilArg.getIntArg;
 
+import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -11,8 +12,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.MetricRegistry;
 import org.dshops.metrics.listeners.KairosDBListenerFactory;
-import org.dshops.metrics.test.generators.support.EventGenerator;
-import org.dshops.metrics.test.generators.support.EventQueryGenerator;
 import org.kairosdb.client.HttpClient;
 
 /** Metric Generators is used for 'testing', aka generating metrics
@@ -21,6 +20,9 @@ import org.kairosdb.client.HttpClient;
 public class MetricGenerator {
 
     public static void main(String[] args) {
+        // Disable caching, as we create unique MR/Listener for 'simulated' host.
+        MetricRegistry.enableRegistryCaching(false);
+        KairosDBListenerFactory.enableListenerCaching(false);
         new MetricGenerator(args);
     }
 
@@ -30,7 +32,7 @@ public class MetricGenerator {
                                                     "root",
                                                     reg,
                                                     100,
-                                                    5000,
+                                                    10_000,
                                                     -1);
     }
 
@@ -42,7 +44,7 @@ public class MetricGenerator {
 
             String service = getArg(args, "s", "dshops");
             String app = getArg(args, "a", "metrics");
-            String appType = getArg(args, "T", "test");
+            String appType = getArg(args, "T", "testload");
 
             // simulations
             final long runTime = getIntArg(args, "t", Integer.MAX_VALUE); // runtime minutes
@@ -73,10 +75,11 @@ public class MetricGenerator {
             System.out.println("TPS/thread:         " + writeTps);
             System.out.println("Query-TPS/thread:   " + querytps);
 
+            String hostPrefix = InetAddress.getLocalHost().getHostName();
 
             for (int i = 0; i < hosts; i++) {
-                String hostname = "host"+i;
-                MetricRegistry mr = new MetricRegistry.Builder(service, app, appType, "hostname", "datacenter1").build();
+                String hostname = hostPrefix +i;
+                MetricRegistry mr = new MetricRegistry.Builder(service, app, appType, hostname, "datacenter1").build();
 
                 if (writeTps > 0) {
                     writers[i] = new EventGenerator(hostname,
@@ -115,7 +118,8 @@ public class MetricGenerator {
                 eqg.start();
 
                 if (writeTps > 0) {
-                    getListener(mr, url);
+                    EventListener listener = getListener(mr, url);
+                    mr.addEventListener(listener);
                     writers[i].start();
                 }
             }
