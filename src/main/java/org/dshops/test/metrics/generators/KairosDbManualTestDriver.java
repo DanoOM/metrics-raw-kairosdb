@@ -16,7 +16,7 @@ public class KairosDbManualTestDriver {
     }
 
     public KairosDbManualTestDriver(String[] args) {
-        url = UtilArg.getArg(args, "url", "http://wdc-tst-masapp-003:8080");
+        url = UtilArg.getArg(args, "url", "http://localhost:8080");
         MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
         mr.addEventListener(getListener(mr));
         // basic timer test
