@@ -1,13 +1,19 @@
 package org.dshops.metrics.listeners;
 
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.dshops.metrics.DoubleEvent;
 import org.dshops.metrics.Event;
 import org.dshops.metrics.EventIndexingListener;
@@ -44,6 +50,7 @@ implements Runnable, EventIndexingListener {
     private final String serviceTeam;
     private final String app;
     private final String appType;
+    private final Map<String,String> versions = new HashMap<>();
 
     KairosDbIndexingListener(String connectString,
                             String un,
@@ -83,11 +90,34 @@ implements Runnable, EventIndexingListener {
 
         this.offerTime = offerTimeMillis;
         try {
-            kairosDb = new HttpClient(connectString);
+            RequestConfig reqConfig = RequestConfig.custom()
+                                                   .setStaleConnectionCheckEnabled(false)
+                                                   .setConnectTimeout(5000)
+                                                   .setSocketTimeout(5000)
+                                                   .setConnectionRequestTimeout(5000)
+                                                   .build();
+            HttpClientBuilder builder = HttpClientBuilder.create();
+            builder.setMaxConnPerRoute(2)
+                   .setDefaultRequestConfig(reqConfig);
+
+            kairosDb = new HttpClient(builder, connectString);
         }
         catch(MalformedURLException mue) {
             throw new RuntimeException("Malformed Url:"+connectString+" "+mue.getMessage());
         }
+
+        // Get Version Info
+        String kbListenerVersion = getVersion("org.dshops/metrics-raw-kairosdb", this.getClass());
+        String metricsRawVersion = getVersion("org.dshops/metrics-raw", registry.getClass());
+
+        System.out.println("kairosDbListener - Version Info[KairosDbListener:" + kbListenerVersion + ", metrics-raw:"+metricsRawVersion);
+
+        if (kbListenerVersion != null) {
+            versions.put("kairosDbListenerVersion", kbListenerVersion);
+            versions.put("metricsRawVersion", metricsRawVersion);
+        }
+
+
         runThread = new Thread(this);
         runThread.setName("KairosDbListenerMilliBucket");
         runThread.setDaemon(true);
@@ -172,34 +202,34 @@ implements Runnable, EventIndexingListener {
     	try{
 	    	MetricBuilder mb = MetricBuilder.getInstance();
 	    	mb.addMetric("metricsraw.stats.data.count")
+	          .addTags(versions)
 	    	  .addTags(registry.getTags())
 	    	  .addTag("serviceTeam",serviceTeam)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(metricCount);
 	    	mb.addMetric("metricsraw.stats.http.errors")
-	    	.addTags(registry.getTags())
-            .addTag("serviceTeam",serviceTeam)
-            .addTag("app",app)
-            .addTag("appType",appType)
+	    	  .addTags(registry.getTags())
+	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("app",app)
+	    	  .addTag("appType",appType)
 	    	  .addDataPoint(errorCount);
 	    	mb.addMetric("metricsraw.stats.http.count")
-	    	.addTags(registry.getTags())
-            .addTag("serviceTeam",serviceTeam)
-            .addTag("app",app)
-            .addTag("appType",appType)
+	    	  .addTags(registry.getTags())
+	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("app",app)
+	    	  .addTag("appType",appType)
 	    	  .addDataPoint(httpCalls);
 	    	mb.addMetric("metricsraw.stats.data.dropped")
-	    	.addTags(registry.getTags())
-            .addTag("serviceTeam",serviceTeam)
-            .addTag("app",app)
-            .addTag("appType",appType)
+	    	  .addTags(registry.getTags())
+	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("app",app)
+	    	  .addTag("appType",appType)
 	    	  .addDataPoint(droppedEvents.longValue());
-	    	 Response r = kairosDb.pushMetrics(mb);
-
-             if (r.getStatusCode() != 204 ) {
-                 log.warn("failed to send metric statistics!", r.getStatusCode());
-             }
+	    	Response r = kairosDb.pushMetrics(mb);
+           if (r.getStatusCode() != 204 ) {
+               log.warn("failed to send metric statistics!", r.getStatusCode());
+           }
     	}
     	catch(Exception e) {
     		log.warn("failed to send metric statistis to server! {} ", e.getMessage());
@@ -289,4 +319,40 @@ implements Runnable, EventIndexingListener {
             catch (Exception e) {}
         }
     }
+
+    public synchronized String getVersion(String path, Class clazz) {
+        String version = null;
+
+        // try to load from maven properties first
+        try {
+            Properties p = new Properties();
+            InputStream is = getClass().getResourceAsStream("/META-INF/maven/"+path+"/pom.properties");
+            if (is != null) {
+                p.load(is);
+                version = p.getProperty("version", "");
+            }
+        }
+        catch (Exception e) {
+            // ignore
+        }
+
+        // fallback to using Java API
+        if (version == null) {
+            Package aPackage = clazz.getPackage();
+            if (aPackage != null) {
+                version = aPackage.getImplementationVersion();
+                if (version == null) {
+                    version = aPackage.getSpecificationVersion();
+                }
+            }
+        }
+
+        if (version == null) {
+            // we could not compute the version so use a blank
+            version = "";
+        }
+
+        return version;
+    }
+
 }

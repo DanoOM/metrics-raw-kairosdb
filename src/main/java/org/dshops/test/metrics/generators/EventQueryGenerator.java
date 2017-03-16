@@ -11,9 +11,9 @@ import org.kairosdb.client.builder.AggregatorFactory;
 import org.kairosdb.client.builder.DataPoint;
 import org.kairosdb.client.builder.QueryBuilder;
 import org.kairosdb.client.builder.TimeUnit;
-import org.kairosdb.client.response.Queries;
+import org.kairosdb.client.response.Query;
 import org.kairosdb.client.response.QueryResponse;
-import org.kairosdb.client.response.Results;
+import org.kairosdb.client.response.Result;
 
 public class EventQueryGenerator extends Thread implements Runnable {
     final String[] eventNames;
@@ -76,10 +76,10 @@ public class EventQueryGenerator extends Thread implements Runnable {
                     if (resp.getStatusCode() != 200) {
                         System.out.println("error unexpected status code:" + resp.getStatusCode() + " BODY: " + resp.getBody());
                     }
-                    List<Queries> queries = resp.getQueries();
-                    for (Queries q: queries){
-                        List<Results> results = q.getResults();
-                        for (Results res: results) {
+                    List<Query> queries = resp.getQueries();
+                    for (Query q: queries) {
+                        List<Result> results = q.getResults();
+                        for (Result res: results) {
                             List<DataPoint> dataPoints = res.getDataPoints();
                             if (dataPoints != null && dataPoints.size() > 0) {
                                // System.out.println("("+event+") ("+minutes+") DataPoints returned: " + dataPoints.size());
