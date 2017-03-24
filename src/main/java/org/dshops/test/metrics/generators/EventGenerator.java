@@ -52,14 +52,15 @@ public class EventGenerator extends Thread implements Runnable {
                     pause(r.nextInt((int)sleepTime)); // since tps target is less then 1000, we will sleep 1ms for each event.
                 }
                 int tagCount = r.nextInt(possibleTags); // random number of tags to generate
+                Map<String,String> tags = new HashMap<>();
                 if (tagCount > 0) {
-                    Map<String,String> tags = new HashMap<>();
-                    for (int i = 0 ; i < tagCount; i++){
+                    for (int i = 0 ; i < tagCount; i++) {
                         tags.put("tag" + r.nextInt(tagCount), "value"+ r.nextInt(tagValueCount));
                     }
                     mr.event(eventNames[r.nextInt(eventNames.length)], tags);
                 }
                 else {
+                    tags.put("tag0" , "value"+ r.nextInt(tagValueCount));
                     mr.event(eventNames[r.nextInt(eventNames.length)]);
                 }
                 this.counter.incrementAndGet();

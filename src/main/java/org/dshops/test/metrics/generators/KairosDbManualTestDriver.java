@@ -2,6 +2,7 @@ package org.dshops.test.metrics.generators;
 
 import java.util.Random;
 
+import org.dshops.metrics.BucketMetricRegistry;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.Meter;
 import org.dshops.metrics.MetricRegistry;
@@ -16,8 +17,8 @@ public class KairosDbManualTestDriver {
     }
 
     public KairosDbManualTestDriver(String[] args) {
-        url = UtilArg.getArg(args, "url", "http://localhost:8080");
-        MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
+        url = UtilArg.getArg(args, "url", "http://wdc-tst-masapp-001:8080");
+        MetricRegistry mr = new BucketMetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
         mr.addEventListener(getListener(mr));
         // basic timer test
         Timer t = mr.timer("testTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
@@ -26,8 +27,14 @@ public class KairosDbManualTestDriver {
         sleep(1000);
         t.stop();
         t2.stop();
+        // re-use' the first time.
+        t = mr.timer("testTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
         sleep(1000);
         t3.stop();
+        t.stop();
+
+
+
 
         // Basic event test with value
         mr.event("testEventWholeNumber", 10);

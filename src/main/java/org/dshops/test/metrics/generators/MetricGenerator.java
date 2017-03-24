@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.dshops.metrics.BucketMetricRegistry;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.MetricRegistry;
 import org.dshops.metrics.listeners.KairosDBListenerFactory;
@@ -31,8 +32,8 @@ public class MetricGenerator {
                                                     "root",
                                                     "root",
                                                     reg,
-                                                    100,
-                                                    10_000,
+                                                    500,
+                                                    12_000,
                                                     -1);
     }
 
@@ -79,7 +80,7 @@ public class MetricGenerator {
 
             for (int i = 0; i < hosts; i++) {
                 String hostname = hostPrefix +i;
-                MetricRegistry mr = new MetricRegistry.Builder(service, app, appType, hostname, "datacenter1").build();
+                MetricRegistry mr = new BucketMetricRegistry.Builder(service, app, appType, hostname, "datacenter1").build();
 
                 if (writeTps > 0) {
                     writers[i] = new EventGenerator(hostname,
