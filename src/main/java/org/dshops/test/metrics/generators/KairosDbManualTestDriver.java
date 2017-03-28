@@ -2,7 +2,6 @@ package org.dshops.test.metrics.generators;
 
 import java.util.Random;
 
-import org.dshops.metrics.BucketMetricRegistry;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.Meter;
 import org.dshops.metrics.MetricRegistry;
@@ -18,7 +17,7 @@ public class KairosDbManualTestDriver {
 
     public KairosDbManualTestDriver(String[] args) {
         url = UtilArg.getArg(args, "url", "http://wdc-tst-masapp-001:8080");
-        MetricRegistry mr = new BucketMetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
+        MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
         mr.addEventListener(getListener(mr));
         // basic timer test
         Timer t = mr.timer("testTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
@@ -32,6 +31,15 @@ public class KairosDbManualTestDriver {
         sleep(1000);
         t3.stop();
         t.stop();
+
+        // Some Alerts (show up under <PREFIX>.alerts.
+        mr.alert("testAlertNoValue");
+        sleep(1000);
+        mr.alert("testAlertWholeNumber", 100);
+        sleep(1000);
+        mr.alert("testAlertDoubleNumber", -100.555);
+        sleep(1000);
+        mr.alert("testAlertTagged","tag","tagValue");
 
 
 
@@ -53,21 +61,21 @@ public class KairosDbManualTestDriver {
         // Gauge test
         Random r = new Random();
 
-        mr.scheduleGauge("testGauage", 1, () -> {
+        mr.scheduleGauge("testGauge", 1, () -> {
             return r.nextInt(100);
         }, "tag", "tagValue");
         // note cannot have 2 gauges with same name/tagset
-        mr.scheduleGauge("testGauage", 5, () -> {
+        mr.scheduleGauge("testGauge", 5, () -> {
             return r.nextInt(100) + 200;
         }, "tag", "tagValue2");
         // note cannot have 2 gauges with same name/tagset
-        mr.scheduleGauge("testGauage2", 1, () -> {
+        mr.scheduleGauge("testGauge2", 1, () -> {
             return r.nextInt(100) + 400;
         }, "tag", "tagValue");
 
 
-        Meter meter = mr.scheduleMeter("testRateGauge1s", 1);
-        Meter meter2 = mr.scheduleMeter("testRateGauge5s", 5, "tag","tagvalue1");
+        Meter meter = mr.scheduleMeter("testMeter1s", 1);
+        Meter meter2 = mr.scheduleMeter("testMeter5s", 5, "tag","tagvalue1");
 
         // counter test - 65 seconds
         for (int i = 0; i < 65_000; i++) {
@@ -80,6 +88,8 @@ public class KairosDbManualTestDriver {
             }
             mr.counter("testCounter").increment();
         }
+
+
         System.out.println("Exiting");
 
     }
