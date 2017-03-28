@@ -24,8 +24,8 @@ public class KairosDBListenerFactory {
     }
 
     public static EventListener buildListener(String connectString,
-                                              String un,
-                                              String pd,
+                                              String username,
+                                              String password,
                                               MetricRegistry registry,
                                               int batchSize,
                                               int bufferSize,
@@ -36,8 +36,8 @@ public class KairosDBListenerFactory {
                 listener = indexingListeners.get(connectString);
                 if (listener == null) {
                     listener = new KairosDbIndexingListener(connectString,
-                                                            un,
-                                                            pd,
+                                                            username,
+                                                            password,
                                                             registry,
                                                             batchSize,
                                                             bufferSize,
@@ -56,20 +56,20 @@ public class KairosDBListenerFactory {
     }
 
     public static EventListener buildUnindexedListener(String connectString,
-                                              String un,
-                                              String pd,
-                                              MetricRegistry registry,
-                                              int batchSize,
-                                              int bufferSize,
-                                              long offerTimeMillis) {
+                                                       String username,
+                                                       String password,
+                                                       MetricRegistry registry,
+                                                       int batchSize,
+                                                       int bufferSize,
+                                                       long offerTimeMillis) {
         EventListener listener = unIndexingListeners.get(connectString);
         if (listener == null) {
             synchronized (unIndexingListeners) {
                 listener = unIndexingListeners.get(connectString);
                 if (listener == null) {
                     listener = new KairosDbNonIndexingListener(connectString,
-                                                               un,
-                                                               pd,
+                                                               username,
+                                                               password,
                                                                registry,
                                                                batchSize,
                                                                bufferSize,
