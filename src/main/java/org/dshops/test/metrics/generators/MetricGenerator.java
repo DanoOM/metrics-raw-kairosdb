@@ -31,8 +31,8 @@ public class MetricGenerator {
                                                     "root",
                                                     "root",
                                                     reg,
-                                                    100,
-                                                    10_000,
+                                                    500,
+                                                    12_000,
                                                     -1);
     }
 

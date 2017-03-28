@@ -59,7 +59,7 @@ public class EventQueryGenerator extends Thread implements Runnable {
 
                 String event = eventNames[r.nextInt(eventNames.length)];
 
-                int minutes = r.nextInt(3) + 2; // lets assume users can only look at 2+ minutes of data.
+                int minutes = r.nextInt(3) + 2; // lets assume users can only look at 2-5+ minutes of data.
                 //if (r.nextInt(100) > 95) {
                 //    minutes +=60;   // lets assume 5% queries are looking at a 1 hour period.
                 //}
