@@ -38,7 +38,7 @@ public class MetricGenerator {
 
     public MetricGenerator(String[] args) {
         try {
-            String url = getArg(args, "url", "http://localhost:8080");
+            String url = getArg(args, "url", "http://wdc-tst-masapp-003:8080");
             String user = getArg(args, "u", "root");
             String pd = getArg(args, "p", "root");
 
