@@ -47,7 +47,7 @@ implements Runnable, EventIndexingListener {
     private final static Logger log = LoggerFactory.getLogger(KairosDbIndexingListener.class);
     private final MetricRegistry registry;
     private final AtomicInteger droppedEvents = new AtomicInteger();
-    private final String serviceTeam;
+    private final String namespace;
     private final String app;
     private final String appType;
     private final Map<String,String> versions = new HashMap<>();
@@ -77,12 +77,12 @@ implements Runnable, EventIndexingListener {
     	this.registry = registry;
     	if (registry !=null) {
         	String[] prefix = registry.getPrefix().split("\\.");
-        	this.serviceTeam = prefix[0];
+        	this.namespace = prefix[0];
         	this.app = prefix[1];
         	this.appType = prefix[2];
     	}
     	else {
-    	    this.serviceTeam = null;
+    	    this.namespace = null;
     	    this.app = null;
     	    this.appType = null;
     	}
@@ -213,25 +213,25 @@ implements Runnable, EventIndexingListener {
 	    	mb.addMetric("metricsraw.stats.data.count")
 	          .addTags(versions)
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(metricCount);
 	    	mb.addMetric("metricsraw.stats.http.errors")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(errorCount);
 	    	mb.addMetric("metricsraw.stats.http.count")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(httpCalls);
 	    	mb.addMetric("metricsraw.stats.data.dropped")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(droppedEvents.longValue());
