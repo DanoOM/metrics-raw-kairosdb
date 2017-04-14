@@ -1,3 +1,5 @@
+0.4.4
+* updated to reference latest metrics-raw.
 0.0.2
 * added metrics version info to metrics status, under metricsraw.stats.data.count (2 new tags: kairDbListenerVersion, and metricsRawVersion)
 
