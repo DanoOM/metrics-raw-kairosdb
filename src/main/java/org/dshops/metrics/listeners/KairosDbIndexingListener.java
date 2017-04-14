@@ -47,7 +47,7 @@ implements Runnable, EventIndexingListener {
     private final static Logger log = LoggerFactory.getLogger(KairosDbIndexingListener.class);
     private final MetricRegistry registry;
     private final AtomicInteger droppedEvents = new AtomicInteger();
-    private final String serviceTeam;
+    private final String namespace;
     private final String app;
     private final String appType;
     private final Map<String,String> versions = new HashMap<>();
@@ -75,10 +75,17 @@ implements Runnable, EventIndexingListener {
                             int bufferSize,
                             long offerTimeMillis) {
     	this.registry = registry;
-    	String[] prefix = registry.getPrefix().split("\\.");
-    	this.serviceTeam = prefix[0];
-    	this.app = prefix[1];
-    	this.appType = prefix[2];
+    	if (registry !=null) {
+        	String[] prefix = registry.getPrefix().split("\\.");
+        	this.namespace = prefix[0];
+        	this.app = prefix[1];
+        	this.appType = prefix[2];
+    	}
+    	else {
+    	    this.namespace = null;
+    	    this.app = null;
+    	    this.appType = null;
+    	}
 
         this.queue = new ArrayBlockingQueue<>(bufferSize);
         if (batchSize > 1) {
@@ -108,15 +115,14 @@ implements Runnable, EventIndexingListener {
 
         // Get Version Info
         String kbListenerVersion = getVersion("org.dshops/metrics-raw-kairosdb", this.getClass());
-        String metricsRawVersion = getVersion("org.dshops/metrics-raw", registry.getClass());
-
-        System.out.println("kairosDbListener - Version Info[KairosDbListener:" + kbListenerVersion + ", metrics-raw:"+metricsRawVersion);
-
-        if (kbListenerVersion != null) {
-            versions.put("kairosDbListenerVersion", kbListenerVersion);
-            versions.put("metricsRawVersion", metricsRawVersion);
+        if (registry != null) {
+            String metricsRawVersion = getVersion("org.dshops/metrics-raw", registry.getClass());
+            System.out.println("kairosDbListener - Version Info[KairosDbListener:" + kbListenerVersion + ", metrics-raw:"+metricsRawVersion);
+            if (kbListenerVersion != null) {
+                versions.put("kairosDbListenerVersion", kbListenerVersion);
+                versions.put("metricsRawVersion", metricsRawVersion);
+            }
         }
-
 
         runThread = new Thread(this);
         runThread.setName("KairosDbListenerMilliBucket");
@@ -199,30 +205,33 @@ implements Runnable, EventIndexingListener {
     }
 
     private void sendMetricStats(long metricCount, long errorCount, long httpCalls) throws Exception {
-    	try{
+    	try {
+
+    	    if (registry == null) return;
+
 	    	MetricBuilder mb = MetricBuilder.getInstance();
 	    	mb.addMetric("metricsraw.stats.data.count")
 	          .addTags(versions)
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(metricCount);
 	    	mb.addMetric("metricsraw.stats.http.errors")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(errorCount);
 	    	mb.addMetric("metricsraw.stats.http.count")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(httpCalls);
 	    	mb.addMetric("metricsraw.stats.data.dropped")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("serviceTeam",serviceTeam)
+	    	  .addTag("namespace",namespace)
 	    	  .addTag("app",app)
 	    	  .addTag("appType",appType)
 	    	  .addDataPoint(droppedEvents.longValue());
