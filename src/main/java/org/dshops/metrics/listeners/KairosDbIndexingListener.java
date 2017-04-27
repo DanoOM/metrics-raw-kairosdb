@@ -125,7 +125,7 @@ implements Runnable, EventIndexingListener {
         }
 
         runThread = new Thread(this);
-        runThread.setName("KairosDbListenerMilliBucket");
+        runThread.setName("KairosDbIndexingListener");
         runThread.setDaemon(true);
         runThread.start();
     }
@@ -195,8 +195,8 @@ implements Runnable, EventIndexingListener {
                 errorCount++;
                 if (System.currentTimeMillis() - exceptionTime > 60_000) {
                     log.error("Unexpected Exception (only 1 exception logged per minute)", ex);
+                    exceptionTime = System.currentTimeMillis();
                 }
-                exceptionTime = System.currentTimeMillis();
             }
             finally {
                 dispatchList.clear();
