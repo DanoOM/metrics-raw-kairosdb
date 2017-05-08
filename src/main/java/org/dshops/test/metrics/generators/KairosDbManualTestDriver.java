@@ -23,6 +23,7 @@ public class KairosDbManualTestDriver {
         Timer t = mr.timer("testTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
         Timer t2 = mr.timer("testTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
         Timer t3 = mr.timer("testTimer2", "tag1", "tagValue1").addTag("tag2", "tagValue2");
+        Timer notEnoughDataTimer = mr.percentileTimer("testNoDataPercentileTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
         sleep(1000);
         t.stop();
         t2.stop();
@@ -30,7 +31,8 @@ public class KairosDbManualTestDriver {
         t = mr.timer("testTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
         sleep(1000);
         t3.stop();
-        t.stop();
+        t.stop();        
+        notEnoughDataTimer.stop(); // NOTE: will yield no result (since requires 100 samples)
 
         // Some Alerts (show up under <PREFIX>.alerts.
         mr.alert("testAlertNoValue");
@@ -40,9 +42,6 @@ public class KairosDbManualTestDriver {
         mr.alert("testAlertDoubleNumber", -100.555);
         sleep(1000);
         mr.alert("testAlertTagged","tag","tagValue");
-
-
-
 
         // Basic event test with value
         mr.event("testEventWholeNumber", 10);
@@ -78,9 +77,15 @@ public class KairosDbManualTestDriver {
         Meter meter2 = mr.scheduleMeter("testMeter5s", 5, "tag","tagvalue1");
 
         // counter test - 65 seconds
+        
         for (int i = 0; i < 65_000; i++) {
             try {
+                Timer tp = mr.percentileTimer("testPercentileTimer");                        
                 Thread.sleep(r.nextInt(5));
+                
+                if (i % 100 == 0) { // this will give us a DataPoint every ~6 datapoints, our of 650 datapoints 'timed'..aka stopped()
+                    tp.stop();
+                }
                 meter.mark();
                 meter2.mark();
             }
@@ -88,8 +93,6 @@ public class KairosDbManualTestDriver {
             }
             mr.counter("testCounter").increment();
         }
-
-
         System.out.println("Exiting");
 
     }
