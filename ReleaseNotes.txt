@@ -1,3 +1,5 @@
+0.4.6
+* Version bump for version-parity with metrics-raw 
 0.4.4
 * updated to reference latest metrics-raw.
 * updated to enable use of the KairosDB*LIsteners without the metricRegistry. (i.e. registry is nullable).
