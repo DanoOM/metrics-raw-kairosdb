@@ -1,3 +1,5 @@
+0.5.0
+ * update to use latest metrics-raw.
 0.4.6
 * Version bump for version-parity with metrics-raw 
 0.4.4

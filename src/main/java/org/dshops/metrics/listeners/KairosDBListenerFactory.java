@@ -11,7 +11,7 @@ public class KairosDBListenerFactory {
     private static Map<String, EventListener> unIndexingListeners = new ConcurrentHashMap<>();
     private static boolean enableListenerCaching = true;
 
-    public static void enableListenerCaching(boolean enableCaching){
+    public static void enableListenerCaching(boolean enableCaching) {
         enableListenerCaching = enableCaching;
     }
 

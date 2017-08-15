@@ -303,7 +303,7 @@ implements Runnable, EventIndexingListener {
     public void onEvent(Event e) {
         if (offerTime > 0) {
             try {
-                if (!queue.offer(e, offerTime, TimeUnit.MILLISECONDS)){
+                if (!queue.offer(e, offerTime, TimeUnit.MILLISECONDS)) {
                 	droppedEvents.incrementAndGet();
                 }
             }
