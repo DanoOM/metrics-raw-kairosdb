@@ -101,7 +101,26 @@ public class KairosDbManualTestDriver {
             mr.counter("testCounter").increment();
         }
         System.out.println("Exiting");
+    }
 
+    public void indexingTest() {
+        String url = "http://wdc-tst-masapp-001:8080";
+        MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
+        mr.addEventListener(getListener(mr));
+
+        long startTime = System.currentTimeMillis();
+        while(startTime == System.currentTimeMillis());
+        mr.event("",1);
+        mr.event("",2);
+        mr.event("",3);
+        mr.event("",4);
+        mr.event("",5);
+        mr.event("",6);
+        mr.event("",7);
+        mr.event("",8);
+        mr.event("",9);
+        mr.event("",10);
+        System.out.println();
     }
 
     public static void main(String[] args) {

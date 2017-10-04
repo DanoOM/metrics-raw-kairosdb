@@ -194,7 +194,7 @@ implements Runnable, EventIndexingListener {
             catch(Exception ex) {
                 errorCount++;
                 if (System.currentTimeMillis() - exceptionTime > 60_000) {
-                    log.error("Unexpected Exception (only 1 exception logged per minute)", ex);
+                    log.warn("Unexpected Exception (only 1 exception logged per minute)", ex);
                     exceptionTime = System.currentTimeMillis();
                 }
             }
