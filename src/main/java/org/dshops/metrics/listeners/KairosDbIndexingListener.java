@@ -213,27 +213,15 @@ implements Runnable, EventIndexingListener {
 	    	mb.addMetric("metricsraw.stats.data.count")
 	          .addTags(versions)
 	    	  .addTags(registry.getTags())
-	    	  .addTag("namespace",namespace)
-	    	  .addTag("app",app)
-	    	  .addTag("appType",appType)
 	    	  .addDataPoint(metricCount);
 	    	mb.addMetric("metricsraw.stats.http.errors")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("namespace",namespace)
-	    	  .addTag("app",app)
-	    	  .addTag("appType",appType)
 	    	  .addDataPoint(errorCount);
 	    	mb.addMetric("metricsraw.stats.http.count")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("namespace",namespace)
-	    	  .addTag("app",app)
-	    	  .addTag("appType",appType)
 	    	  .addDataPoint(httpCalls);
 	    	mb.addMetric("metricsraw.stats.data.dropped")
 	    	  .addTags(registry.getTags())
-	    	  .addTag("namespace",namespace)
-	    	  .addTag("app",app)
-	    	  .addTag("appType",appType)
 	    	  .addDataPoint(droppedEvents.longValue());
 	    	Response r = kairosDb.pushMetrics(mb);
            if (r.getStatusCode() != 204 ) {
