@@ -4,11 +4,19 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -37,8 +45,7 @@ import org.slf4j.LoggerFactory;
  *
  * */
 public class KairosDbIndexingListener extends ThreadedListener
-implements Runnable, EventIndexingListener {
-
+implements Runnable, EventIndexingListener {    
     private final BlockingQueue<Event> queue;
     private final int batchSize;
     private final long offerTime;   // amount of time we are willing to 'block' before adding an event to our buffer, prior to dropping it.
@@ -51,6 +58,7 @@ implements Runnable, EventIndexingListener {
     private final String app;
     private final String appType;
     private final Map<String,String> versions = new HashMap<>();
+    private final ExecutorService executor;
 
     KairosDbIndexingListener(String connectString,
                             String un,
@@ -64,7 +72,7 @@ implements Runnable, EventIndexingListener {
                             String pd,
                             MetricRegistry registry,
                             int batchSize) {
-        this(connectString, un, pd, registry, batchSize, 5000, -1);
+        this(connectString, un, pd, registry, batchSize, 5000, -1, 2);
     }
 
     KairosDbIndexingListener(String connectString,
@@ -73,7 +81,8 @@ implements Runnable, EventIndexingListener {
                             MetricRegistry registry,
                             int batchSize,
                             int bufferSize,
-                            long offerTimeMillis) {
+                            long offerTimeMillis,
+                            int maxDispatchThreads) {        
     	this.registry = registry;
     	if (registry !=null) {
         	String[] prefix = registry.getPrefix().split("\\.");
@@ -103,11 +112,12 @@ implements Runnable, EventIndexingListener {
                                                    .setSocketTimeout(5000)
                                                    .setConnectionRequestTimeout(5000)
                                                    .build();
+            
             HttpClientBuilder builder = HttpClientBuilder.create();
-            builder.setMaxConnPerRoute(2)
+            builder.setMaxConnPerRoute(maxDispatchThreads)
                    .setDefaultRequestConfig(reqConfig);
-
             kairosDb = new HttpClient(builder, connectString);
+            
         }
         catch(MalformedURLException mue) {
             throw new RuntimeException("Malformed Url:"+connectString+" "+mue.getMessage());
@@ -123,6 +133,13 @@ implements Runnable, EventIndexingListener {
                 versions.put("metricsRawVersion", metricsRawVersion);
             }
         }
+        
+        executor = new ThreadPoolExecutor(Math.min(1,maxDispatchThreads),                    // CORE
+                                          maxDispatchThreads,   // max thread growth
+                                          10l,                  // keepAlive
+                                          TimeUnit.SECONDS,
+                                          new LinkedBlockingQueue<>(10),                                          
+                                          new ThreadPoolExecutor.CallerRunsPolicy());
 
         runThread = new Thread(this);
         runThread.setName("KairosDbIndexingListener");
@@ -136,13 +153,14 @@ implements Runnable, EventIndexingListener {
 
     @Override
     public void run() {
-        final List<Event> dispatchList = new ArrayList<>(batchSize);
+        List<Event> dispatchList = new ArrayList<>(batchSize);
         long lastResetTime = System.currentTimeMillis();
         long httpCalls = 0;
         long metricCount = 0;
         long errorCount = 0;
         long exceptionTime = 0;
         Response lastError = null;
+        List<Future<Response>> results = new LinkedList<>();
         do {
             try {
                 // block until we have at least 1 metric
@@ -156,17 +174,34 @@ implements Runnable, EventIndexingListener {
                         dispatchList.add(e);
                     }
                     // flush every second or until we have seen batchSize Events
-                } while(dispatchList.size() < batchSize && (System.currentTimeMillis() - takeTime < 1000));
+                } while(dispatchList.size() < batchSize && (System.currentTimeMillis() - takeTime < 500));
 
                 // @todo - consider bucketing..we may get multiple datapoints for the same ms, with the same name/tagSet, we will lose data with this approach atm.
-                metricCount += dispatchList.size();
-                Response r = kairosDb.pushMetrics(buildPayload(dispatchList));
-                httpCalls++;
-                if (r.getStatusCode() != 204 ) {
-                    lastError = r;
-                    errorCount++;
+                
+                DataDispatcher dd = new DataDispatcher(kairosDb, dispatchList);                
+                results.add(executor.submit(dd));
+                metricCount += dispatchList.size();              
+                httpCalls++;                
+                Iterator<Future<Response>> itr = results.iterator();
+                while (itr.hasNext()) {
+                    try {
+                        Future<Response> f = itr.next();
+                        if (f.isDone()) {
+                            Response r = f.get();
+                            itr.remove();
+                            if (r.getStatusCode() != 204 ) {
+                                lastError = r;
+                                errorCount++;
+                            }
+                        }
+                    }
+                    catch(Exception e) {
+                        log.error("Exception processing future!", e);                            
+                        try{itr.remove();} catch(Exception ex){}
+                    }
                 }
-                // every 5 minutes log a stat
+                
+                // every 1 minute report general statistics
                 if (System.currentTimeMillis() - lastResetTime > 60_000) {
                 	sendMetricStats(metricCount, errorCount, httpCalls);
                     if (lastError != null) {
@@ -199,7 +234,8 @@ implements Runnable, EventIndexingListener {
                 }
             }
             finally {
-                dispatchList.clear();
+                if (!dispatchList.isEmpty())            
+                    dispatchList = new ArrayList<>(batchSize);
             }
         } while(true);
     }
@@ -311,6 +347,7 @@ implements Runnable, EventIndexingListener {
         super.stop();
         if(kairosDb != null) {
             try {
+                executor.shutdown();
                 kairosDb.shutdown();
             }
             catch (Exception e) {}
@@ -351,5 +388,69 @@ implements Runnable, EventIndexingListener {
 
         return version;
     }
+}
 
+class DataDispatcher implements Callable<Response> {
+    private final HttpClient kairosClient;
+    private final List<Event> events;
+    
+    public DataDispatcher(HttpClient kairosClient, List<Event> events) {
+        this.kairosClient = kairosClient;
+        this.events = events;
+    }
+
+    @Override
+    public Response call() throws Exception {
+        Response r = kairosClient.pushMetrics(buildPayload(events));
+        return r;
+    }
+    
+    private static MetricBuilder buildPayload(List<Event> events) {
+        MetricBuilder mb = MetricBuilder.getInstance();
+        for (Event e: events) {
+            if (e.getIndex() > 1) {
+                if (e instanceof LongEvent) {
+                    mb.addMetric(e.getName())
+                       .addTags(e.getTags())
+                       .addTag("index", e.getIndex() + "")
+                       .addDataPoint(e.getTimestamp(), e.getLongValue());
+                }
+                else if (e instanceof DoubleEvent) {
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addTag("index", e.getIndex() + "")
+                      .addDataPoint(e.getTimestamp(), e.getDoubleValue());
+                }
+                else {
+                    // this is a pure event, value has no meaning
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addTag("index", e.getIndex() + "")
+                      .addDataPoint(e.getTimestamp(), 1);
+                }
+            }
+            else {
+                if (e instanceof LongEvent) {
+                    mb.addMetric(e.getName())
+                       .addTags(e.getTags())
+                       .addTag("index", "1")
+                       .addDataPoint(e.getTimestamp(), e.getLongValue());
+                }
+                else if (e instanceof DoubleEvent) {
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addTag("index", "1")
+                      .addDataPoint(e.getTimestamp(), e.getDoubleValue());
+                }
+                else {
+                    // this is a pure event, value has no meaning
+                    mb.addMetric(e.getName())
+                      .addTags(e.getTags())
+                      .addTag("index", "1")
+                      .addDataPoint(e.getTimestamp(), 1);
+                }
+            }
+        }
+        return mb;
+    }
 }

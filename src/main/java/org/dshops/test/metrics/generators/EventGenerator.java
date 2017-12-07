@@ -41,9 +41,12 @@ public class EventGenerator extends Thread implements Runnable {
     }
 
     @Override
-    public void run() {
+    public void run() {        
         Random r = new Random();
+        System.out.println("-------------------------");
         System.out.println("Host: " + hostname + " started Target TPS:"+tps);
+        System.out.println("-------------------------");        
+        try {Thread.sleep(new Random().nextInt(1000));}catch(Exception e){}        
         while (!this.exitFlag.get()) {
             long time = System.currentTimeMillis() + 1000;
             for (int j = 0; j < tps ; j++) {

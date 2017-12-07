@@ -6,6 +6,7 @@ import static org.dshops.test.metrics.generators.UtilArg.getIntArg;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -26,14 +27,19 @@ public class MetricGenerator {
         new MetricGenerator(args);
     }
 
-    public EventListener getListener(MetricRegistry reg, String url) {
+    public EventListener getListener(MetricRegistry reg, 
+                                      String url, 
+                                      int bufferSize, 
+                                      int batchSize, 
+                                      int maxDispatchThreads) {
         return KairosDBListenerFactory.buildListener(url,
-                                                    "root",
-                                                    "root",
-                                                    reg,
-                                                    500,
-                                                    12_000,
-                                                    -1);
+                                                     "root",
+                                                     "root",
+                                                     reg,
+                                                     batchSize,
+                                                     bufferSize,
+                                                     -1,
+                                                     maxDispatchThreads);
     }
 
     public MetricGenerator(String[] args) {
@@ -45,6 +51,7 @@ public class MetricGenerator {
             String service = getArg(args, "s", "dshops");
             String app = getArg(args, "a", "metrics");
             String appType = getArg(args, "T", "testload");
+            String datacenter = getArg(args, "d", "datacenter1");
 
             // simulations
             final long runTime = getIntArg(args, "t", Integer.MAX_VALUE); // runtime minutes
@@ -63,23 +70,40 @@ public class MetricGenerator {
             AtomicInteger queryCounter = new AtomicInteger();
             AtomicInteger dataPointsRead = new AtomicInteger();
             AtomicBoolean exitFlag = new AtomicBoolean();
+            int maxDispatchThreads = 1;
+            int bufferSize = 10_000;
+            int batchSize = 500;
+            
+            bufferSize = getIntArg(args, "buffersz", bufferSize);
+            maxDispatchThreads= getIntArg(args, "mt", maxDispatchThreads);
+            batchSize = getIntArg(args, "batchsz", batchSize);
+            
             System.out.println("SETTINGS");
             System.out.println("url                 " + url);
             System.out.println("service             " + service);
             System.out.println("app                 " + app);
-            System.out.println("app                 " + appType);
+            System.out.println("appType             " + appType);
             System.out.println("runtime             " + runTime);
             System.out.println("eventNames/thread:  " + eventSignatures);
             System.out.println("tags/thread:        " + tagCount);
             System.out.println("values/thread:      " + tagValues);
             System.out.println("TPS/thread:         " + writeTps);
-            System.out.println("Query-TPS/thread:   " + querytps);
+            System.out.println("Query-TPS/thread:   " + querytps);            
+            System.out.println("BufferSize          " + bufferSize);
+            System.out.println("BatchSize           " + batchSize);
+            System.out.println("maxDispatchThreads  " + maxDispatchThreads);
 
             String hostPrefix = InetAddress.getLocalHost().getHostName();
 
+            
+            
             for (int i = 0; i < hosts; i++) {
+                // randomize -- host jvms are generally not instantiated at same time..
+                Random r = new Random();
+                Thread.sleep(r.nextInt(1000));                
                 String hostname = hostPrefix +i;
-                MetricRegistry mr = new MetricRegistry.Builder(service, app, appType, hostname, "datacenter1").build();
+                appType+=i;
+                MetricRegistry mr = new MetricRegistry.Builder(service, app, appType, hostname, datacenter).build();
 
                 if (writeTps > 0) {
                     writers[i] = new EventGenerator(hostname,
@@ -117,8 +141,13 @@ public class MetricGenerator {
                                                                   dataPointsRead);
                 eqg.start();
 
+                                
                 if (writeTps > 0) {
-                    EventListener listener = getListener(mr, url);
+                    EventListener listener = getListener(mr, 
+                                                         url, 
+                                                         bufferSize, 
+                                                         batchSize,
+                                                         maxDispatchThreads);
                     mr.addEventListener(listener);
                     writers[i].start();
                 }
@@ -128,7 +157,9 @@ public class MetricGenerator {
             long generatedEvents = 0;
             long queries = 0;
             while (System.currentTimeMillis() < endTime && dpWrittenCount.get() < maxEvents) {
-                Thread.sleep(1000); // 10 seconds
+                
+                Thread.sleep(1000); // x seconds
+                
                 if (System.currentTimeMillis() > reportTime) {
                     long remainingTime = endTime - System.currentTimeMillis();
 

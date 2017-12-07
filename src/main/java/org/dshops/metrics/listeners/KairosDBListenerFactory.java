@@ -20,16 +20,17 @@ public class KairosDBListenerFactory {
     }
 
     public static EventListener buildListener(String connectString, MetricRegistry registry) {
-        return buildListener(connectString, "", "", registry, 50, 5000, -1);
+        return buildListener(connectString, "", "", registry, 50, 5000, -1, 2);
     }
 
     public static EventListener buildListener(String connectString,
-                                              String username,
-                                              String password,
-                                              MetricRegistry registry,
-                                              int batchSize,
-                                              int bufferSize,
-                                              long offerTimeMillis) {
+                                               String username,
+                                               String password,
+                                               MetricRegistry registry,
+                                               int batchSize,
+                                               int bufferSize,
+                                               long offerTimeMillis,
+                                               int maxDispatchThreads) {
         EventListener listener = indexingListeners.get(connectString);
         if (listener == null) {
             synchronized (indexingListeners) {
@@ -41,7 +42,8 @@ public class KairosDBListenerFactory {
                                                             registry,
                                                             batchSize,
                                                             bufferSize,
-                                                            offerTimeMillis);
+                                                            offerTimeMillis,
+                                                            maxDispatchThreads);
                     if (enableListenerCaching) {
                         indexingListeners.put(connectString, listener);
                     }

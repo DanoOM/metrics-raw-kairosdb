@@ -1,3 +1,7 @@
+0.6.0
+ * Improved configuration, allows multi-threaded event 'flush' to kairosdb. 
+ * Breaking Build - KairosDBListenerFactory.buildListener updated.
+ * Updated kairosDBListenerFactory - buildListener now allows batchSize,bufferSize,maxDispatchThreads to be configured.
 0.5.3
  * When the kairosdblistener emits statistics, it will not report namespace,app,app-type, as this became problematic when multiple namespace,app,app-type are reported with the same Kairosdb-listener.
 0.5.0
