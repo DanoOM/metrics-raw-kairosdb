@@ -1,5 +1,6 @@
 package org.dshops.test.metrics.generators;
 
+import java.util.Date;
 import java.util.Random;
 
 import org.dshops.metrics.EventListener;
@@ -19,6 +20,11 @@ public class KairosDbManualTestDriver {
         url = UtilArg.getArg(args, "url", "http://wdc-tst-masapp-001:8080");
         MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
         mr.addEventListener(getListener(mr));
+
+        long ts = System.currentTimeMillis() - 60_000;
+        System.out.println(new Date(ts));
+        mr.eventAtTs("testEvent-old", ts);
+        mr.event("testEvent-now", ts);
 
         // timer used for 2 timeings.
         Timer reuseTimer = mr.getTimer("testManualTimer", "tag1", "tagValue1").addTag("tag2", "tagValue2");
