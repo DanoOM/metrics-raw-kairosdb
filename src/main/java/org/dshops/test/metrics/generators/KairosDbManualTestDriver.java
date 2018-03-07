@@ -3,6 +3,7 @@ package org.dshops.test.metrics.generators;
 import java.util.Date;
 import java.util.Random;
 
+import org.dshops.metrics.EventBucket;
 import org.dshops.metrics.EventListener;
 import org.dshops.metrics.Meter;
 import org.dshops.metrics.MetricRegistry;
@@ -68,6 +69,21 @@ public class KairosDbManualTestDriver {
         mr.event("testEventDouble", 10.9);
         mr.event("testEventDouble", 11.0);
 
+        int[] percentiles = {90}; // 94 rounds down to 9th
+        EventBucket.initBucketDataToReport(10, percentiles, 
+                                           EventBucket.STAT_STD
+                                           |EventBucket.STAT_AVE
+                                           |EventBucket.STAT_MIN
+                                           |EventBucket.STAT_MAX);
+
+        for (int i = 0; i < 100; i++) {
+            sleep(1);
+            if (i % 10 == 0) {
+                sleep(1000);
+            }
+            mr.eventBucket("testEventBucket", i);
+        }
+        
         mr.event("testEventWholeNumber", 10, "tag", "tagValue");
         mr.event("testEventEventDouble", 10.6, "tag", "tagValue");
         // Gauge test
