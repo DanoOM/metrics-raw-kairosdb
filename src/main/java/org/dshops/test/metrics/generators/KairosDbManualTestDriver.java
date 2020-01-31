@@ -12,14 +12,13 @@ import org.dshops.metrics.listeners.KairosDBListenerFactory;
 
 public class KairosDbManualTestDriver {
 
-    private String url;
+    private static String url;
+    
     public EventListener getListener(MetricRegistry reg) {
         return KairosDBListenerFactory.buildListener(url, reg);
     }
 
-    public KairosDbManualTestDriver(String[] args) {
-        url = UtilArg.getArg(args, "url", "http://wdc-tst-masapp-001:8080");
-        MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
+    public KairosDbManualTestDriver(String[] args, MetricRegistry mr) {                
         mr.addEventListener(getListener(mr));
 
         long ts = System.currentTimeMillis() - 60_000;
@@ -70,11 +69,17 @@ public class KairosDbManualTestDriver {
         mr.event("testEventDouble", 11.0);
 
         int[] percentiles = {90}; // 94 rounds down to 9th
-        EventBucket.initBucketDataToReport(10, percentiles, 
+        try {
+        	EventBucket.initBucketDataToReport(10, percentiles, 
+        
                                            EventBucket.STAT_STD
                                            |EventBucket.STAT_AVE
                                            |EventBucket.STAT_MIN
                                            |EventBucket.STAT_MAX);
+        }
+        catch(Exception e) {
+        	// will occur if this we run multiple times.
+        }
 
         for (int i = 0; i < 100; i++) {
             sleep(1);
@@ -106,7 +111,7 @@ public class KairosDbManualTestDriver {
         Meter meter2 = mr.scheduleMeter("testMeter5s", 5, "tag","tagvalue1");
 
         // counter test - 65 seconds
-
+/*
         for (int i = 0; i < 65_000; i++) {
             try {
                 Timer tp = mr.percentileTimer("testPercentileTimer");
@@ -122,6 +127,7 @@ public class KairosDbManualTestDriver {
             }
             mr.counter("testCounter").increment();
         }
+        */
         System.out.println("Exiting");
     }
 
@@ -146,7 +152,19 @@ public class KairosDbManualTestDriver {
     }
 
     public static void main(String[] args) {
-        new KairosDbManualTestDriver(args);
+    	url = UtilArg.getArg(args, "url", "http://wdc-tst-masapp-001:8080");
+        MetricRegistry mr = new MetricRegistry.Builder("dshops", "metrics", "test", "testHost", "testDatacenter").build();
+        MetricRegistry mr2 = new MetricRegistry.Builder("dshops", "metrics", "test2", "testHost", "testDatacenter").build();
+    	KairosDbManualTestDriver driver = new KairosDbManualTestDriver(args, mr);
+    	KairosDbManualTestDriver driver2 = new KairosDbManualTestDriver(args, mr2);
+    	mr.removeAllEventListeners(false);    	
+    	sleep(60 * 1000);
+    	mr2.removeAllEventListeners(false);
+    	sleep(60 * 1000);
+    	
+    	driver = new KairosDbManualTestDriver(args, mr);
+    	//driver.mr.removeAllEventListeners();
+    	sleep(60 * 1000);
     }
 
     private static void sleep(long millis) {

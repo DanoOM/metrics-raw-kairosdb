@@ -43,7 +43,7 @@ implements Runnable, EventIndexingListener {
     private final int batchSize;
     private final long offerTime;   // amount of time we are willing to 'block' before adding an event to our buffer, prior to dropping it.
     private Thread runThread;
-    private final HttpClient kairosDb;
+    private HttpClient kairosDb;
     private final static Logger log = LoggerFactory.getLogger(KairosDbIndexingListener.class);
     private final MetricRegistry registry;
     private final AtomicInteger droppedEvents = new AtomicInteger();
@@ -51,6 +51,9 @@ implements Runnable, EventIndexingListener {
     private final String app;
     private final String appType;
     private final Map<String,String> versions = new HashMap<>();
+    
+    private final String connectionString;
+    private final HttpClientBuilder builder;
 
     KairosDbIndexingListener(String connectString,
                             String un,
@@ -74,6 +77,7 @@ implements Runnable, EventIndexingListener {
                             int batchSize,
                             int bufferSize,
                             long offerTimeMillis) {
+    	this.connectionString = connectString;
     	this.registry = registry;
     	if (registry !=null) {
         	String[] prefix = registry.getPrefix().split("\\.");
@@ -103,11 +107,11 @@ implements Runnable, EventIndexingListener {
                                                    .setSocketTimeout(5000)
                                                    .setConnectionRequestTimeout(5000)
                                                    .build();
-            HttpClientBuilder builder = HttpClientBuilder.create();
+            builder = HttpClientBuilder.create();
             builder.setMaxConnPerRoute(2)
                    .setDefaultRequestConfig(reqConfig);
 
-            kairosDb = new HttpClient(builder, connectString);
+            kairosDb = new HttpClient(builder, connectString);            
         }
         catch(MalformedURLException mue) {
             throw new RuntimeException("Malformed Url:"+connectString+" "+mue.getMessage());
@@ -129,11 +133,7 @@ implements Runnable, EventIndexingListener {
         runThread.setDaemon(true);
         runThread.start();
     }
-
-    HttpClient getClient() {
-        return kairosDb;
-    }
-
+    
     @Override
     public void run() {
         final List<Event> dispatchList = new ArrayList<>(batchSize);
@@ -160,7 +160,17 @@ implements Runnable, EventIndexingListener {
 
                 // @todo - consider bucketing..we may get multiple datapoints for the same ms, with the same name/tagSet, we will lose data with this approach atm.
                 metricCount += dispatchList.size();
-                Response r = kairosDb.pushMetrics(buildPayload(dispatchList));
+                Response r = null;
+
+                try {
+                	r = kairosDb.pushMetrics(buildPayload(dispatchList));
+                }
+                catch(IllegalStateException ise) {
+                	log.warn("Error pushing metrics, will attempt reconnect", ise);
+                	// kairosDB, try and rebuild 1 time.
+                	kairosDb = new HttpClient(builder, connectionString);
+                	r = kairosDb.pushMetrics(buildPayload(dispatchList));
+                }
                 httpCalls++;
                 if (r.getStatusCode() != 204 ) {
                     lastError = r;
@@ -187,9 +197,6 @@ implements Runnable, EventIndexingListener {
                     metricCount = 0;
                     lastResetTime = System.currentTimeMillis();
                 }
-            }
-            catch(InterruptedException ie) {
-                break;
             }
             catch(Exception ex) {
                 errorCount++;

@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.dshops</groupId>
   <artifactId>metrics-raw-kairosdb</artifactId>
-  <version>0.6.6</version>  
+  <version>0.6.7</version>  
   <url>https://github.com/DanoOM/metrics-raw-kairosdb</url>	
   <prerequisites>
     <maven>3.0.0</maven>
@@ -22,7 +22,8 @@
 		</license>
 	</licenses>
 
-  <developers>
+
+        <developers>
 		<developer>
 		    <name>Daniel Hopkins</name>
 			<id>DanoOM</id>
@@ -46,12 +47,23 @@
 		<developerConnection>scm:git:git@github.com:DanoOM/metrics-raw-kairosdb.git</developerConnection>
 		<tag>HEAD</tag>
 	</scm>
+        <distributionManagement>
+		<snapshotRepository>
+			<id>metrics-raw-repo</id>
+			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+		</snapshotRepository>
+		<repository>
+			<id>metrics-raw-repo</id>
+			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+		</repository>
+	</distributionManagement>
+
   
   <dependencies>
   		<dependency>
 			<groupId>org.dshops</groupId>
 			<artifactId>metrics-raw</artifactId>
-			<version>0.6.6</version>
+			<version>0.6.7</version>
 		</dependency>
 		<dependency>
 			<groupId>org.kairosdb</groupId>
